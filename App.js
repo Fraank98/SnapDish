@@ -5,9 +5,9 @@ import { Camera } from 'expo-camera';
 
 export default function App() {
   const [hasPermission, setHasPermission] = useState(null);
-  const [type, setType] = useState(Camera.Constants.Type.back);
   const [imageUri, setImageUri] = useState(false);
   const [camera, setCamera] = useState(null);
+  const type = Camera.Constants.Type.back;
 
   useEffect(() => {
     (async () => {
