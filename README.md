@@ -1,2 +1,2 @@
 # SnapDish
-A camera app made with React Native to take a picture of your meal and upload it to a cloud storage.
+A camera app made with React Native and Expo to take a picture of your meal (or everything you want)and upload it to Firebase storage.
