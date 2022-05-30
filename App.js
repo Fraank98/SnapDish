@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Button, Image, Pressable } from 'react-native';
-
+import { StyleSheet, Text, View, TouchableOpacity, Button, Image, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { Camera } from 'expo-camera';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons'; 
+import firebaseConfig from './firebase.js';
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/storage';
+
+firebase.initializeApp(firebaseConfig);
 
 export default function App() {
   const [hasPermission, setHasPermission] = useState(null);
@@ -21,7 +25,10 @@ export default function App() {
       color:'white',
     }
   }
+
   const [flashText, setFlashText] = useState(initialflashText)
+  const [uploading, setUploading] = useState(false)
+  const [showUploading, setShowUploading] = useState(false)
 
   useEffect(() => {
     (async () => {
@@ -33,7 +40,6 @@ export default function App() {
   const takePicture = async () => {
     if (activateFlash) {
       setFlash(Camera.Constants.FlashMode.torch);
-      console.log("sono nell' IF")
     }
     if (!camera) return;
     const photo = await camera.takePictureAsync(null);
@@ -73,15 +79,63 @@ export default function App() {
     return <Text>No access to camera</Text>;
   }
 
+  const uploadButton = () => {
+    uploadImage(imageUri);
+  }
+ 
+  const uploadImage = async (uri) => { 
+    const response = await fetch (uri);
+    const blob = await response.blob();
+
+    var ref = firebase.storage().ref().child("images/" + "test");
+    const snapshot = ref.put(blob);
+
+    snapshot.on(
+      firebase.storage.TaskEvent.STATE_CHANGED,
+      () => {
+         setUploading(true);
+         setShowUploading(true)
+      },
+       (error) => {
+         setUploading(false)
+         console.log(error);
+         blob.close()
+         return
+      },
+       () => {
+         snapshot.snapshot.ref.getDownloadURL().then((url)=>{
+           setUploading(false)
+           Alert.alert("Uploading Completed!");
+           setTimeout(() => {
+              setImageUri(false)
+           }, 1800);
+           blob.close();
+           return url;
+          });
+        
+        }
+    );
+
+    // if (uploading) {
+    //   
+    //     setUploading(false);
+    //     setImageUri(false);
+    //     console.log("Uploading");
+    // }
+
+}      
+
+
   return (
     <View style={styles.container}>
       {!imageUri && 
       <Camera flashMode={flash} style={styles.camera} type={type} ref={(ref) => setCamera(ref)}>
         <View style={styles.buttonContainer}>
-          {!imageUri && <TouchableOpacity
+          {!imageUri && 
+          <TouchableOpacity
             style={styles.snapButton}
             onPress={takePicture}>
-            <Ionicons name="camera" size={60} color="red"/>
+            <Ionicons name="radio-button-on-outline" size={80} color="white"/>
           </TouchableOpacity> 
           }
         </View>
@@ -91,13 +145,22 @@ export default function App() {
         </Pressable>
       </Camera>}
       {!!imageUri && <Image source={{ uri: imageUri }} style={styles.preview} />}
+      {!!imageUri && 
+      <Pressable onPress={uploadButton} style={styles.uploadIcon}>
+        <Ionicons name="cloud-upload" size={50} color="white"/>
+      </Pressable>
+      }
+      {!!uploading && 
+      <View style={styles.uploadingContainer}>
+        <ActivityIndicator size="large" color="white" style={styles.uploading} animating={showUploading}/>
+      </View>
+      }
       {!!imageUri &&
-        <View style={styles.bottom}>
-          <TouchableOpacity style={styles.closeButton} onPress={closeButton}>
-            <Ionicons name="arrow-back-circle" size={60} color="red"/>
-            {/* <Text style={styles.backTest}>back</Text> */}
-          </TouchableOpacity>
-        </View>
+      <View style={styles.bottom}>
+        <TouchableOpacity style={styles.closeButton} onPress={closeButton}>
+          <Ionicons name="close-circle" size={60} color="red"/>
+        </TouchableOpacity>
+      </View>
       }
     </View>
   );
@@ -128,13 +191,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 50,
     right: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.3 )',
+    padding: 5,
+    height: 60,
+    width: 60,
+    borderRadius: 55,
   },
 
   flashText: {
-    fontSize: 10,
+    fontSize: 9,
     position: 'absolute',
     marginTop : 40,
-    marginLeft : 20,
+    marginLeft : 25,
   },
 
   text: {
@@ -145,27 +213,39 @@ const styles = StyleSheet.create({
   
   bottom: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     alignItems: 'center',
   },
 
   closeButton: {
     position: 'absolute',
     bottom: 60,
-    paddingRight: 5,
-    paddingLeft: 5
   },
 
   preview: {
     height: '100%', 
   },
 
-  backTest: {
+  uploadIcon: { 
     position: 'absolute',
-    marginTop: 60,
-    marginLeft: 14,
-    color: 'red',
-    fontSize: 18,
+    top: 50,
+    right: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.3 )',
+    padding: 5,
+    height: 60,
+    width: 60,
+    borderRadius: 55,
+  },
+
+  uploadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },  
+
+  uploading: {
+    //position: 'absolute',
+    bottom: 400,
   }
 
 });
