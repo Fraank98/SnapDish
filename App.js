@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import firebaseConfig from './firebase.js';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/storage';
+import moment from 'moment';
 
 firebase.initializeApp(firebaseConfig);
 
@@ -86,8 +87,8 @@ export default function App() {
   const uploadImage = async (uri) => { 
     const response = await fetch (uri);
     const blob = await response.blob();
-
-    var ref = firebase.storage().ref().child("images/" + "test");
+    var fileName = moment().format('MMMM-Do-YYYY - h:mm a');
+    var ref = firebase.storage().ref().child("images/" + fileName);
     const snapshot = ref.put(blob);
 
     snapshot.on(
@@ -115,16 +116,7 @@ export default function App() {
         
         }
     );
-
-    // if (uploading) {
-    //   
-    //     setUploading(false);
-    //     setImageUri(false);
-    //     console.log("Uploading");
-    // }
-
 }      
-
 
   return (
     <View style={styles.container}>
